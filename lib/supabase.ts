@@ -8,12 +8,15 @@ function requireEnv(name: string, message?: string): string {
   return value;
 }
 
-const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-const supabaseAnonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export function createServerSupabaseClient() {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new Error(
+      "Missing SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) for server routes."
+    );
+  }
+
   const serviceRoleKey = requireEnv(
     "SUPABASE_SERVICE_ROLE_KEY",
     "Missing SUPABASE_SERVICE_ROLE_KEY. Add it to .env.local for server routes."
