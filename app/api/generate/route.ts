@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey) {
+      return NextResponse.json(
+        { error: "Missing GROQ_API_KEY in environment variables." },
+        { status: 500 }
+      );
+    }
+
     const body = await req.json();
     const { topic } = body;
 
@@ -18,7 +26,7 @@ export async function POST(req: Request) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          Authorization: `Bearer ${groqApiKey}`,
         },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
@@ -39,7 +47,24 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    const text = data.choices[0].message.content;
+    if (!response.ok) {
+      const apiError =
+        typeof data?.error?.message === "string"
+          ? data.error.message
+          : "Groq request failed";
+      return NextResponse.json(
+        { error: apiError },
+        { status: response.status }
+      );
+    }
+
+    const text = data?.choices?.[0]?.message?.content;
+    if (typeof text !== "string" || !text.trim()) {
+      return NextResponse.json(
+        { error: "Model returned an empty response." },
+        { status: 502 }
+      );
+    }
 
     const facts = text
       .split("\n")
